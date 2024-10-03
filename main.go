@@ -16,7 +16,7 @@
 
 package main
 
-import "github.com/MaggotMouth/sentry-exporter/cmd"
+import "github.com/Husteln/sentry-exporter/cmd"
 
 func main() {
 	cmd.Execute()

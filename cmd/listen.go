@@ -19,7 +19,7 @@ package cmd
 import (
 	"net/http"
 
-	"github.com/MaggotMouth/sentry-exporter/internal/sentrycollector"
+	"github.com/Husteln/sentry-exporter/internal/sentrycollector"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog/log"

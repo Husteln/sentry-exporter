@@ -43,7 +43,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v3
         with:
-          images: maggotmouth/sentry-exporter
+          images: husteln/sentry-exporter
           tags: |
             type=ref,event=branch
             type=ref,event=pr
