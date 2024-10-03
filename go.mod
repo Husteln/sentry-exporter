@@ -1,4 +1,4 @@
-module github.com/MaggotMouth/sentry-exporter
+module github.com/Husteln/sentry-exporter
 
 go 1.23.1
 
