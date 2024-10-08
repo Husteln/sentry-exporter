@@ -151,9 +151,7 @@ func initConfig() {
 		zerolog.SetGlobalLevel(zerolog.PanicLevel)
 	}
 
-	if logFormat == "text" {
-		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stdout})
-	}
+	log.Logger = zerolog.New(os.Stdout).With().Timestamp().Logger()
 
 	// Default values for configuration
 	viper.SetDefault("listen_address", ":9142")
