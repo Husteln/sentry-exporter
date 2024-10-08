@@ -36,8 +36,7 @@ var projectIncludes string
 var teamIncludes string
 var queryIncludes string
 
-const version = "0.2.1"
-const buildDate = "2021/07/11 15:46"
+var version = "unknown"
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{

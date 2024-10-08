@@ -27,7 +27,6 @@ var versionCmd = &cobra.Command{
 	Short: "Prints version information of the application",
 	Run: func(cmd *cobra.Command, args []string) {
 		log.Info().Msg("Version: " + version)
-		log.Info().Msg("Build date: " + buildDate)
 	},
 }
 
