@@ -131,7 +131,7 @@ func initConfig() {
 
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
-		fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
+		fmt.Fprintln(os.Stdout, "Using config file:", viper.ConfigFileUsed())
 	}
 
 	switch logLevel {
@@ -152,7 +152,7 @@ func initConfig() {
 	}
 
 	if logFormat == "text" {
-		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
+		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stdout})
 	}
 
 	// Default values for configuration
