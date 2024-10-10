@@ -21,7 +21,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/atlassian/go-sentry-api"
+	"github.com/husteln/go-sentry-api"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
@@ -340,7 +340,7 @@ func fetchErrorCount(project sentry.Project, query string) (float64, error) {
 		log.Error().Err(err).Msg(intialiseSentryError)
 	}
 	// Retry 3 times to fetch stats if there's a failure, with a 3s break between retries
-	for i := 0; i < 3; i++ {
+	for i := 0; i < 1; i++ {
 		log.Debug().
 			Str("project", *project.Slug).
 			Str("query", query).
@@ -359,7 +359,7 @@ func fetchErrorCount(project sentry.Project, query string) (float64, error) {
 			log.Debug().
 				Str("project", *project.Slug).
 				Str("query", query).
-				Msg("Could not fetch stats. Retrying")
+				Msg("Could not fetch stats. Retrying (no)")
 			apiFailureCallCount++
 			time.Sleep(time.Second * 3)
 		} else {

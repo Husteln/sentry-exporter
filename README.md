@@ -72,7 +72,7 @@ sentry_project_errors{query="received"} * on (project) group_left(team) sentry_p
 
 Thanks to the contributors of the following projects, without whom this project would not be possible:
 * [Cobra & Viper](https://github.com/spf13/cobra)
-* [Atlassian Sentry API](https://github.com/atlassian/go-sentry-api)
+* [Atlassian Sentry API](https://github.com/husteln/go-sentry-api)
 * [Zerolog](https://github.com/rs/zerolog)
 
 
