@@ -37,6 +37,7 @@ var teamIncludes string
 var queryIncludes string
 var resolution string
 var waitGroupThrottleMs string
+var queryTimeframe string
 
 var version = "unknown"
 
@@ -129,8 +130,10 @@ func initConfig() {
 	}
 	viper.SetEnvPrefix("SENTRY_EXPORTER")
 
+	fmt.Fprintln(os.Stdout, "Starting Sentry Exporter v=", version)
+
 	viper.AutomaticEnv() // read in environment variables that match
-	fmt.Fprintln(os.Stdout, "Reading env variables...")
+	fmt.Fprintln(os.Stdout, "Reading env variables")
 
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
@@ -155,6 +158,7 @@ func initConfig() {
 	}
 
 	log.Logger = zerolog.New(os.Stdout).With().Timestamp().Logger()
+	fmt.Fprintln(os.Stdout, "Log level: ", logLevel)
 
 	// Default values for configuration
 	viper.SetDefault("listen_address", ":9142")
@@ -163,6 +167,7 @@ func initConfig() {
 	viper.SetDefault("ttl_teams", 3600)
 	// viper.SetDefault("resolution", "1h")
 	viper.SetDefault("waitgroupthrottlems", "5ms")
+	viper.SetDefault("query_timeframe", "60s")
 
 	if token != "" {
 		viper.SetDefault("token", token)
@@ -190,5 +195,9 @@ func initConfig() {
 
 	if waitGroupThrottleMs != "" {
 		viper.SetDefault("waitgroupthrottlems", waitGroupThrottleMs)
+	}
+
+	if queryTimeframe != "" {
+		viper.SetDefault("query_timeframe", queryTimeframe)
 	}
 }

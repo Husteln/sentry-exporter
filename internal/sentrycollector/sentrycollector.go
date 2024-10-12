@@ -38,6 +38,7 @@ var (
 	includeTeams        []string
 	resolution          string
 	waitGroupThrottleMs string
+	queryTimeframe      string
 	apiSuccessCallCount float64
 	apiFailureCallCount float64
 )
@@ -142,6 +143,11 @@ func (collector *sentryCollector) Collect(ch chan<- prometheus.Metric) {
 		waitGroupThrottleMs = viper.GetString("waitgroupthrottlems")
 	}
 
+	// get queryTimeframe parameter to include if specified
+	if viper.IsSet("query_timeframe") {
+		queryTimeframe = viper.GetString("query_timeframe")
+	}
+
 	// Compile the various metrics (if TTL hasn't expired)
 	fetchOrganisation()
 	fetchTeams()
@@ -196,7 +202,10 @@ func exportProjects(
 	ch chan<- prometheus.Metric,
 ) {
 	if lastScan["errors"] == 0 {
-		lastScan["errors"] = time.Now().Add(time.Second * -10).Unix()
+		offset, _ := time.ParseDuration(queryTimeframe)
+		// Because time.Add and time.Sub work differently :rolleyes:
+		offset = -offset
+		lastScan["errors"] = time.Now().Add(offset).Unix()
 	}
 	var wg sync.WaitGroup
 	dur, err := time.ParseDuration(waitGroupThrottleMs)
