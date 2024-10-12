@@ -161,7 +161,7 @@ func initConfig() {
 	viper.SetDefault("ttl_organisation", 86400)
 	viper.SetDefault("ttl_projects", 600)
 	viper.SetDefault("ttl_teams", 3600)
-	viper.SetDefault("resolution", "1h")
+	// viper.SetDefault("resolution", "1h")
 	viper.SetDefault("waitgroupthrottlems", "5ms")
 
 	if token != "" {

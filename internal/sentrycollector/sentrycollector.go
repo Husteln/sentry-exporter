@@ -229,7 +229,7 @@ func exportProject(
 	if (len(includeProjects) == 0 || existsInSlice(*p.Slug, includeProjects)) &&
 		(len(includeTeams) == 0 || isProjectInIncludedTeams(*p.Slug, includeTeams)) &&
 		(len(includeQueries) == 0 || existsInSlice(q, includeQueries)) &&
-		(len(resolution) != 0) && (len(waitGroupThrottleMs) != 0) {
+		(len(waitGroupThrottleMs) != 0) {
 		count, err := fetchErrorCount(p, q, r, t)
 		if err != nil {
 			log.Error().Err(err).Msg("Could not fetch project stats")
