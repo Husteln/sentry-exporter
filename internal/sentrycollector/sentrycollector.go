@@ -36,6 +36,8 @@ var (
 	includeProjects     []string
 	includeQueries      []string
 	includeTeams        []string
+	resolution          string
+	waitGroupThrottleMs string
 	apiSuccessCallCount float64
 	apiFailureCallCount float64
 )
@@ -61,7 +63,7 @@ func NewSentryCollector() *sentryCollector {
 		projectErrors: prometheus.NewDesc(
 			"sentry_project_errors",
 			"Records the number of errors of a particular type for the specific project",
-			[]string{"organisation", "project", "query"},
+			[]string{"organisation", "project", "query", "resolution", "throttle"},
 			nil,
 		),
 		apiCalls: prometheus.NewDesc(
@@ -130,6 +132,16 @@ func (collector *sentryCollector) Collect(ch chan<- prometheus.Metric) {
 		includeQueries = strings.Split(viper.GetString("include_queries"), ",")
 	}
 
+	// get query resolution to include if specified
+	if viper.IsSet("resolution") {
+		resolution = viper.GetString("resolution")
+	}
+
+	// get throttle parameter to include if specified
+	if viper.IsSet("waitgroupthrottlems") {
+		waitGroupThrottleMs = viper.GetString("waitgroupthrottlems")
+	}
+
 	// Compile the various metrics (if TTL hasn't expired)
 	fetchOrganisation()
 	fetchTeams()
@@ -187,11 +199,16 @@ func exportProjects(
 		lastScan["errors"] = time.Now().Add(time.Second * -10).Unix()
 	}
 	var wg sync.WaitGroup
+	dur, err := time.ParseDuration(waitGroupThrottleMs)
+	if err != nil {
+		log.Error().Err(err).Msg("Throttling duration is not set")
+	}
 	for _, project := range projects {
 		queries := []string{"received", "rejected", "blacklisted", "generated"}
 		for _, query := range queries {
 			wg.Add(1)
-			go exportProject(&wg, project, query, collector, ch)
+			go exportProject(&wg, project, query, resolution, waitGroupThrottleMs, collector, ch)
+			time.Sleep(dur)
 		}
 	}
 	wg.Wait()
@@ -203,14 +220,17 @@ func exportProject(
 	wg *sync.WaitGroup,
 	p sentry.Project,
 	q string,
+	r string,
+	t string,
 	collector *sentryCollector,
 	ch chan<- prometheus.Metric,
 ) {
 	defer wg.Done()
 	if (len(includeProjects) == 0 || existsInSlice(*p.Slug, includeProjects)) &&
 		(len(includeTeams) == 0 || isProjectInIncludedTeams(*p.Slug, includeTeams)) &&
-		(len(includeQueries) == 0 || existsInSlice(q, includeQueries)) {
-		count, err := fetchErrorCount(p, q)
+		(len(includeQueries) == 0 || existsInSlice(q, includeQueries)) &&
+		(len(resolution) != 0) && (len(waitGroupThrottleMs) != 0) {
+		count, err := fetchErrorCount(p, q, r, t)
 		if err != nil {
 			log.Error().Err(err).Msg("Could not fetch project stats")
 		} else {
@@ -221,6 +241,8 @@ func exportProject(
 				*organisation.Slug,
 				*p.Slug,
 				q,
+				r,
+				t,
 			)
 		}
 
@@ -330,8 +352,7 @@ func fetchProjects() {
 // fetchErrorCount queries the Sentry API for the error counts of the particular type
 // for the specified project.  If there are multiple 10s buckets returned, it adds them
 // together to return a single count.
-func fetchErrorCount(project sentry.Project, query string) (float64, error) {
-	resolution := "10s"
+func fetchErrorCount(project sentry.Project, query string, resolution string, throttle string) (float64, error) {
 	var err error
 	var c []sentry.Stat
 	// Create a Sentry client to query the API
@@ -345,6 +366,8 @@ func fetchErrorCount(project sentry.Project, query string) (float64, error) {
 			Str("project", *project.Slug).
 			Str("query", query).
 			Int("attempt", i+1).
+			Str("resolution", resolution).
+			Str("throttle", throttle).
 			Msg("Fetching error counts")
 		c, err = client.GetProjectStats(
 			organisation,

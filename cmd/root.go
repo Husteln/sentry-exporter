@@ -35,6 +35,8 @@ var org string
 var projectIncludes string
 var teamIncludes string
 var queryIncludes string
+var resolution string
+var waitGroupThrottleMs string
 
 var version = "unknown"
 
@@ -128,6 +130,7 @@ func initConfig() {
 	viper.SetEnvPrefix("SENTRY_EXPORTER")
 
 	viper.AutomaticEnv() // read in environment variables that match
+	fmt.Fprintln(os.Stdout, "Reading env variables...")
 
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
@@ -158,6 +161,8 @@ func initConfig() {
 	viper.SetDefault("ttl_organisation", 86400)
 	viper.SetDefault("ttl_projects", 600)
 	viper.SetDefault("ttl_teams", 3600)
+	viper.SetDefault("resolution", "1h")
+	viper.SetDefault("waitgroupthrottlems", "5ms")
 
 	if token != "" {
 		viper.SetDefault("token", token)
@@ -177,5 +182,13 @@ func initConfig() {
 
 	if queryIncludes != "" {
 		viper.SetDefault("include_queries", queryIncludes)
+	}
+
+	if resolution != "" {
+		viper.SetDefault("resolution", resolution)
+	}
+
+	if waitGroupThrottleMs != "" {
+		viper.SetDefault("waitgroupthrottlems", waitGroupThrottleMs)
 	}
 }
