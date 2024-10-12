@@ -201,12 +201,9 @@ func exportProjects(
 	collector *sentryCollector,
 	ch chan<- prometheus.Metric,
 ) {
-	if lastScan["errors"] == 0 {
-		offset, _ := time.ParseDuration(queryTimeframe)
-		// Because time.Add and time.Sub work differently :rolleyes:
-		offset = -offset
-		lastScan["errors"] = time.Now().Add(offset).Unix()
-	}
+	lastScan["errors-start"] = time.Now().Truncate(time.Hour).Unix()
+	lastScan["errors-end"] = lastScan["errors-start"] + 3600
+
 	var wg sync.WaitGroup
 	dur, err := time.ParseDuration(waitGroupThrottleMs)
 	if err != nil {
@@ -221,7 +218,6 @@ func exportProjects(
 		}
 	}
 	wg.Wait()
-	lastScan["errors"] = time.Now().Unix()
 }
 
 // exportProject exports the metrics for a single project and query type
@@ -245,7 +241,7 @@ func exportProject(
 		} else {
 			ch <- prometheus.MustNewConstMetric(
 				collector.projectErrors,
-				prometheus.GaugeValue,
+				prometheus.CounterValue,
 				count,
 				*organisation.Slug,
 				*p.Slug,
@@ -382,8 +378,8 @@ func fetchErrorCount(project sentry.Project, query string, resolution string, th
 			organisation,
 			project,
 			sentry.StatQuery(query),
-			lastScan["errors"],
-			time.Now().Unix(),
+			lastScan["errors-start"],
+			lastScan["errors-end"],
 			&resolution,
 		)
 		if err != nil {
