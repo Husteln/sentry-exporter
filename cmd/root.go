@@ -37,9 +37,8 @@ var teamIncludes string
 var queryIncludes string
 var resolution string
 var waitGroupThrottleMs string
-var queryTimeframe string
 
-var version = "unknown"
+var version string
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -157,17 +156,17 @@ func initConfig() {
 		zerolog.SetGlobalLevel(zerolog.PanicLevel)
 	}
 
-	log.Logger = zerolog.New(os.Stdout).With().Timestamp().Logger()
-	fmt.Fprintln(os.Stdout, "Log level: ", logLevel)
+	if logFormat == "text" {
+		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stdout})
+	}
+	fmt.Fprintln(os.Stdout, "Log level:", logLevel)
 
 	// Default values for configuration
 	viper.SetDefault("listen_address", ":9142")
 	viper.SetDefault("ttl_organisation", 86400)
-	viper.SetDefault("ttl_projects", 600)
-	viper.SetDefault("ttl_teams", 3600)
-	// viper.SetDefault("resolution", "1h")
-	viper.SetDefault("waitgroupthrottlems", "5ms")
-	viper.SetDefault("query_timeframe", "60s")
+	viper.SetDefault("ttl_projects", 86400)
+	viper.SetDefault("ttl_teams", 86400)
+	viper.SetDefault("wg_throttle", "100ms")
 
 	if token != "" {
 		viper.SetDefault("token", token)
@@ -197,7 +196,7 @@ func initConfig() {
 		viper.SetDefault("waitgroupthrottlems", waitGroupThrottleMs)
 	}
 
-	if queryTimeframe != "" {
-		viper.SetDefault("query_timeframe", queryTimeframe)
+	if version != "" {
+		viper.SetDefault("version", version)
 	}
 }

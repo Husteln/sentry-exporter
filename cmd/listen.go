@@ -17,6 +17,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"github.com/Husteln/sentry-exporter/internal/sentrycollector"
@@ -46,6 +47,15 @@ func init() {
 	prometheus.MustRegister(collector)
 }
 
+func healthHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+	resp := make(map[string]string)
+	resp["message"] = "Status OK"
+	jsonResp, _ := json.Marshal(resp)
+	w.Write(jsonResp)
+}
+
 func startListener() {
 	address := viper.GetString("listen_address")
 
@@ -57,6 +67,7 @@ func startListener() {
 			EnableOpenMetrics: true,
 		},
 	))
+	http.HandleFunc("/healthcheck", healthHandler)
 	err := http.ListenAndServe(address, nil)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Encountered an error")

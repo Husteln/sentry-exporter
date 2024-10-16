@@ -38,9 +38,9 @@ var (
 	includeTeams        []string
 	resolution          string
 	waitGroupThrottleMs string
-	queryTimeframe      string
 	apiSuccessCallCount float64
 	apiFailureCallCount float64
+	durations           []time.Duration
 )
 
 const intialiseSentryError = "Could not initialise Sentry client"
@@ -50,6 +50,11 @@ type sentryCollector struct {
 	projectInfo   *prometheus.Desc
 	projectErrors *prometheus.Desc
 	apiCalls      *prometheus.Desc
+}
+
+func funcDuration(start time.Time, name string) {
+	elapsed := time.Since(start)
+	log.Printf("%s took %s", name, elapsed)
 }
 
 // NewSentryCollector returns an instance of the sentryCollector
@@ -139,13 +144,8 @@ func (collector *sentryCollector) Collect(ch chan<- prometheus.Metric) {
 	}
 
 	// get throttle parameter to include if specified
-	if viper.IsSet("waitgroupthrottlems") {
-		waitGroupThrottleMs = viper.GetString("waitgroupthrottlems")
-	}
-
-	// get queryTimeframe parameter to include if specified
-	if viper.IsSet("query_timeframe") {
-		queryTimeframe = viper.GetString("query_timeframe")
+	if viper.IsSet("wg_throttle") {
+		waitGroupThrottleMs = viper.GetString("wg_throttle")
 	}
 
 	// Compile the various metrics (if TTL hasn't expired)
@@ -367,13 +367,7 @@ func fetchErrorCount(project sentry.Project, query string, resolution string, th
 	}
 	// Retry 3 times to fetch stats if there's a failure, with a 3s break between retries
 	for i := 0; i < 1; i++ {
-		log.Debug().
-			Str("project", *project.Slug).
-			Str("query", query).
-			Int("attempt", i+1).
-			Str("resolution", resolution).
-			Str("throttle", throttle).
-			Msg("Fetching error counts")
+		start := time.Now()
 		c, err = client.GetProjectStats(
 			organisation,
 			project,
@@ -382,6 +376,15 @@ func fetchErrorCount(project sentry.Project, query string, resolution string, th
 			lastScan["errors-end"],
 			&resolution,
 		)
+		dur := time.Since(start).String()
+		log.Debug().
+			Str("project", *project.Slug).
+			Str("query", query).
+			Int("attempt", i+1).
+			Str("resolution", resolution).
+			Str("throttle", throttle).
+			Str("duration", dur).
+			Msg("Fetching error counts")
 		if err != nil {
 			// sleep for 3 seconds and try again
 			log.Debug().
