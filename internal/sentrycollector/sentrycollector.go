@@ -207,14 +207,19 @@ func exportProjects(
 	var wg sync.WaitGroup
 	dur, err := time.ParseDuration(waitGroupThrottleMs)
 	if err != nil {
-		log.Error().Err(err).Msg("Throttling duration is not set")
+		log.Warn().Err(err).Msg("Throttling duration is incorrect")
 	}
 	for _, project := range projects {
-		queries := []string{"received", "rejected", "blacklisted", "generated"}
-		for _, query := range queries {
-			wg.Add(1)
-			go exportProject(&wg, project, query, resolution, waitGroupThrottleMs, collector, ch)
-			time.Sleep(dur)
+		if (len(includeProjects) == 0 || existsInSlice(*project.Slug, includeProjects)) &&
+			(len(includeTeams) == 0 || isProjectInIncludedTeams(*project.Slug, includeTeams)) {
+			queries := []string{"received", "rejected", "blacklisted", "generated"}
+			for _, query := range queries {
+				if len(includeQueries) == 0 || existsInSlice(query, includeQueries) {
+					wg.Add(1)
+					go exportProject(&wg, project, query, resolution, waitGroupThrottleMs, collector, ch)
+					time.Sleep(dur)
+				}
+			}
 		}
 	}
 	wg.Wait()
@@ -231,26 +236,20 @@ func exportProject(
 	ch chan<- prometheus.Metric,
 ) {
 	defer wg.Done()
-	if (len(includeProjects) == 0 || existsInSlice(*p.Slug, includeProjects)) &&
-		(len(includeTeams) == 0 || isProjectInIncludedTeams(*p.Slug, includeTeams)) &&
-		(len(includeQueries) == 0 || existsInSlice(q, includeQueries)) &&
-		(len(waitGroupThrottleMs) != 0) {
-		count, err := fetchErrorCount(p, q, r, t)
-		if err != nil {
-			log.Error().Err(err).Msg("Could not fetch project stats")
-		} else {
-			ch <- prometheus.MustNewConstMetric(
-				collector.projectErrors,
-				prometheus.CounterValue,
-				count,
-				*organisation.Slug,
-				*p.Slug,
-				q,
-				r,
-				t,
-			)
-		}
-
+	count, err := fetchErrorCount(p, q, r, t)
+	if err != nil {
+		log.Error().Err(err).Msg("Could not fetch project stats")
+	} else {
+		ch <- prometheus.MustNewConstMetric(
+			collector.projectErrors,
+			prometheus.CounterValue,
+			count,
+			*organisation.Slug,
+			*p.Slug,
+			q,
+			r,
+			t,
+		)
 	}
 }
 
@@ -365,7 +364,6 @@ func fetchErrorCount(project sentry.Project, query string, resolution string, th
 	if err != nil {
 		log.Error().Err(err).Msg(intialiseSentryError)
 	}
-	// Retry 3 times to fetch stats if there's a failure, with a 3s break between retries
 	for i := 0; i < 1; i++ {
 		start := time.Now()
 		c, err = client.GetProjectStats(
@@ -376,23 +374,23 @@ func fetchErrorCount(project sentry.Project, query string, resolution string, th
 			lastScan["errors-end"],
 			&resolution,
 		)
-		dur := time.Since(start).String()
+		dur := time.Since(start)
+		thr, _ := time.ParseDuration(waitGroupThrottleMs)
+		durs := time.Duration.String(dur - thr)
 		log.Debug().
 			Str("project", *project.Slug).
 			Str("query", query).
 			Int("attempt", i+1).
 			Str("resolution", resolution).
 			Str("throttle", throttle).
-			Str("duration", dur).
+			Str("duration", durs).
 			Msg("Fetching error counts")
 		if err != nil {
-			// sleep for 3 seconds and try again
 			log.Debug().
 				Str("project", *project.Slug).
 				Str("query", query).
-				Msg("Could not fetch stats. Retrying (no)")
+				Msg("Could not fetch stats")
 			apiFailureCallCount++
-			time.Sleep(time.Second * 3)
 		} else {
 			err = nil
 			apiSuccessCallCount++
